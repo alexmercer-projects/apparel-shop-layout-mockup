@@ -24,7 +24,7 @@ dialog{border:0;padding:0;max-width:760px;width:94vw;border-radius:10px}
 dialog::backdrop{background:rgba(0,0,0,.6)}
 .d{display:grid;grid-template-columns:1.1fr 1fr}.d .ph{aspect-ratio:1/1;color:#fff}
 .info{padding:22px}.info h2{margin:0 0 6px;font-size:20px}.price{font-weight:700;margin-bottom:14px}
-.sizes{display:flex;gap:6px;margin:8px 0 16px}.sizes label{border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer}
+.sizes-label{margin:0 0 6px;font-size:13px;font-weight:650}.sizes{display:flex;gap:6px;margin:0 0 16px}.sizes label{border:1px solid var(--line);border-radius:6px;padding:6px 10px;font-size:13px;cursor:pointer}
 .sizes input{display:none}.sizes input:checked+span{font-weight:800}
 .buy{display:block;width:100%;padding:12px;background:var(--ink);color:#fff;border:0;border-radius:6px;font-weight:700;cursor:pointer}
 .close{position:absolute;right:10px;top:8px;background:#fff;border:0;font-size:22px;cursor:pointer}
@@ -35,22 +35,55 @@ dialog::backdrop{background:rgba(0,0,0,.6)}
 <header><div class="logo">[LOGO]</div><div>
 <h1>[BRAND NAME]</h1><p class="tag">Small-batch apparel · [City] · New drop every [month]</p>
 <div class="links"><a class="primary" href="#shop">Shop the drop</a><a href="#">Instagram</a><a href="#about">About</a></div></div></header>
-<nav id="shop"><button class="on" data-f="all">All</button><button data-f="tops">Tops</button><button data-f="bottoms">Bottoms</button><button data-f="hats">Hats</button></nav>
+<nav id="shop" aria-label="Filter by category"><button class="on" data-f="all">All</button><button data-f="tops">Tops</button><button data-f="bottoms">Bottoms</button><button data-f="hats">Hats</button></nav>
 <main><div class="grid" id="grid"></div></main>
 <section class="about" id="about"><div><strong>About</strong><p>[Two or three sentences about the brand, who it's for and how it's made.]</p></div>
 <div><strong>Ordering</strong><p>Tap any piece to see sizes and price. Checkout through [Shopify / Square / Stripe link], or "DM to order" on Instagram while the line is small. Shipping and returns: [policy].</p></div></section>
 <footer>© [BRAND NAME] · [email] · [Instagram handle]</footer>
-<dialog id="dlg"><div style="position:relative"><button class="close" aria-label="Close">×</button><div class="d"><div class="ph" id="dph"></div>
+<dialog id="dlg" aria-labelledby="dt"><div style="position:relative"><button class="close" aria-label="Close">×</button><div class="d"><div class="ph" id="dph"></div>
 <div class="info"><h2 id="dt"></h2><div class="price" id="dp"></div><div style="font-size:13px;color:#777" id="dd"></div>
 <div class="sizes" id="ds"></div><button class="buy">Buy now / DM to order</button></div></div></div></dialog>
 <script>
 const items=[["Logo Tee","tops","$32","#2b2b2b"],["Heavyweight Hoodie","tops","$68","#5a4636"],["Cargo Pant","bottoms","$74","#3f4a3a"],["Dad Hat","hats","$28","#1f3550"],["Crewneck","tops","$58","#8a8a86"],["Shorts","bottoms","$42","#6b2f2f"],["Long Sleeve","tops","$40","#30343b"],["Beanie","hats","$24","#a0743c"],["Track Pant","bottoms","$64","#222c3f"]];
 const g=document.getElementById('grid'),dlg=document.getElementById('dlg');
-function draw(f){g.innerHTML='';items.forEach((it,i)=>{if(f!=='all'&&it[1]!==f)return;const b=document.createElement('button');b.className='tile';b.style.background=it[3];
-b.innerHTML='<div class="ph">Photo '+(i+1)+'</div><span>'+it[0]+' · '+it[2]+'</span>';b.onclick=()=>open_(it,i);g.appendChild(b)})}
-function open_(it,i){dph.style.background=it[3];dph.textContent='Photo '+(i+1);dt.textContent=it[0];dp.textContent=it[2];
-dd.textContent='[Fabric, fit and care notes for this piece.]';ds.innerHTML=(it[1]==='hats'?['One size']:['S','M','L','XL']).map((s,k)=>'<label><input type="radio" name="s"'+(k?'':' checked')+'><span>'+s+'</span></label>').join('');dlg.showModal()}
-document.querySelector('.close').onclick=()=>dlg.close();dlg.onclick=e=>{if(e.target===dlg)dlg.close()};
-document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button').forEach(x=>x.classList.remove('on'));b.classList.add('on');draw(b.dataset.f)});
+let lastTile=null;
+function draw(f){
+  g.innerHTML='';
+  items.forEach((it,i)=>{
+    if(f!=='all'&&it[1]!==f)return;
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='tile';
+    b.style.background=it[3];
+    b.setAttribute('aria-label', it[0]+', '+it[2]);
+    b.innerHTML='<div class="ph">Photo '+(i+1)+'</div><span>'+it[0]+' · '+it[2]+'</span>';
+    b.onclick=()=>open_(it,i,b);
+    g.appendChild(b);
+  });
+}
+function open_(it,i,tile){
+  lastTile=tile;
+  dph.style.background=it[3];
+  dph.textContent='Photo '+(i+1);
+  dt.textContent=it[0];
+  dp.textContent=it[2];
+  dd.textContent='[Fabric, fit and care notes for this piece.]';
+  const sizes=it[1]==='hats'?['One size']:['S','M','L','XL'];
+  ds.innerHTML='<p class="sizes-label" id="size-label">Size</p>'+sizes.map((s,k)=>'<label><input type="radio" name="s" '+(k?'':'checked ')+'><span>'+s+'</span></label>').join('');
+  dlg.showModal();
+}
+document.querySelector('.close').onclick=()=>dlg.close();
+dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close()});
+dlg.addEventListener('close',()=>{if(lastTile) lastTile.focus()});
+document.querySelectorAll('nav button').forEach(b=>{
+  b.type='button';
+  b.setAttribute('aria-pressed', b.classList.contains('on')?'true':'false');
+  b.onclick=()=>{
+    document.querySelectorAll('nav button').forEach(x=>{x.classList.remove('on');x.setAttribute('aria-pressed','false')});
+    b.classList.add('on');
+    b.setAttribute('aria-pressed','true');
+    draw(b.dataset.f);
+  };
+});
 draw('all');
 </script></body></html>
